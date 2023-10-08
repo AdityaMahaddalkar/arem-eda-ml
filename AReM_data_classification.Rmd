@@ -1,0 +1,70 @@
+# Classification of AReM dataset 
+
+## Read Dataset
+
+```{r}
+# Load the necessary packages
+library(readr)
+library(dplyr)
+
+# Get a list of all CSV files in the subfolders of the AERM folder
+csv_files <- list.files(path = "AReM", pattern = "*.csv", recursive = TRUE)
+
+# Create a list to store the data frames read from the CSV files
+dfs <- list()
+
+# Loop through the CSV files and read them into R
+for (i in 1:length(csv_files)) {
+  # Get the full path to the CSV file
+  csv_file_path <- file.path("AReM", csv_files[i])
+
+  # Read the CSV file into a data frame
+  df <- read_csv(csv_file_path, skip = 4)
+
+  # Add the file name and subfolder name columns to the data frame
+  df <- df %>%
+    mutate(target = strsplit(csv_files[i], "/", fixed=T)[[1]][[1]],
+           dataset_number = strsplit(csv_files[i], "/", fixed=T)[[1]][[2]])
+
+  # Add the data frame to the list
+  dfs[[i]] <- df
+}
+
+# Bind the data frames in the list together to create a single data frame
+data <- bind_rows(dfs)
+
+# Print the data frame
+print(data)
+```
+
+## EDA 
+
+```{r}
+library('skimr')
+
+skim(data)
+```
+
+```{r}
+data <- na.omit(data)
+```
+
+```{r}
+library('ggplot2')
+library('GGally')
+
+ggpairs(data[, c('avg_rss12', 'var_rss12', 'avg_rss13', 'var_rss13', 'avg_rss23', 'var_rss23')])
+```
+
+```{r}
+library(caret)
+
+processed.data <- predict(preProcess(data, method=c('center', 'scale')), data)
+processed.data
+```
+
+```{r}
+processed.data %>% 
+  group_by('target', 'dataset_number') %>%
+  summarize(across(everything(), mean, median, sd))
+```
